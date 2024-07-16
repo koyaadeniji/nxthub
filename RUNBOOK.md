@@ -15,23 +15,23 @@ This runbook outlines the steps for administering and maintaining the "Hello, Wo
  **Build the Docker image**
 
     ```bash
-    docker build -t hello .
-    docker images
-    docker run -d --name helloworld -p 80:80 hello
+    docker build -t hello .                           # to build the images throught the Dockerfile created
+    docker images                                                      #To list the images
+    docker run -d --name helloworld -p 80:80 hello                     #To run the helloworld container 
     docker ps -a
     docker stop helloworld
     docker rm helloworld
-    docker tag hello:latest koyaadeniji/helloworld:v1
-    docker push koyaadeniji/helloworld:v1
+    docker tag hello:latest koyaadeniji/helloworld:v1                 #To tag the image and made ready to bt puch to docker hub
+    docker push koyaadeniji/helloworld:v1                             #To push image to dockerhub
     ```
 
 
 
-## Helm and Kubernetes Commands
+## Helm and Kubernetes Commands for SetUp and Troubleshooting
  **Create a Helm chart**
 
     ```bash
-    helm create helloworld
+    helm create helloworld                               #
     helm lint helloworld/
     helm install myworld helloworld/
     kubectl get pods
@@ -40,29 +40,17 @@ This runbook outlines the steps for administering and maintaining the "Hello, Wo
     kubectl get ingresses
     kubectl port-forward service/myworld-helloworld 8080:80
     kubectl logs deployment/myworld-helloworld
-    kubectl exec -it myworld-helloworld-5bcdf77544-87q87 -- sh
+    kubectl exec -it (container-name) -- sh
     helm uninstall myworld
-    kubectl describe pod myworld-helloworld-5bcdf77544-9hgjp
-    ```
-
-
-## Monitoring and Metrics
-1. **Get Horizontal Pod Autoscaler (HPA)**
-
-    kubectl scale deployment hello-world-deployment --replicas=<desired-replica-count>
-    kubectl autoscale deployment hello-world-deployment --cpu-percent=80 --min=1 --max=10
-    kubectl get hpa
+    kubectl describe pod (pod-name)
+    kubectl cluster-info
+    kubectl get componentstatuses
+    kubectl config view
     
-2. **Top pods for resource usage**
-    ```bash
-    kubectl top pod
-    ```
-3. **Top nodes for resource usage**
-    ```bash
-    kubectl top node
     ```
 
-4. **Adjust Resource Limits and Requests in the Deployment YAML:**
+
+ **Adjust Resource Limits and Requests in the Deployment YAML:**
     ```yaml
     resources:
       requests:
@@ -75,47 +63,25 @@ This runbook outlines the steps for administering and maintaining the "Hello, Wo
 
 
 
-## Troubleshooting
-1. **Get current Kubernetes context**
-    ```bash
-    kubectl config current-context
-    ```
-2. **View Kubernetes configuration**
-    ```bash
-    kubectl config view
-    ```
-3. **Get cluster info**
-    ```bash
-    kubectl cluster-info
-    ```
-4. **Get component statuses**
-    ```bash
-    kubectl get componentstatuses
-    ```
-5. **Logs from a specific pod**
-    ```bash
-    kubectl logs myworld-helloworld-7749867b4d-s9bq8
-    ```
-6. **Describe a pod for troubleshooting**
-    ```bash
-    kubectl describe po myworld-helloworld-7749867b4d-s9bq8
-    ```
 
 
+## Setup for Metrics Server
 
-## Additional Setup for Metrics Server
-1. **Add metrics-server Helm repository**
-    ```bash
-    helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
-    ```
-2. **Install metrics-server using Helm**
-    ```bash
-    helm install my-metrics-server metrics-server/metrics-server --version 3.8.2
-    ```
-3. **Edit metrics-server deployment to access insecure tls**
+```bash
 
-    ```bash
-    kubectl edit deployment/metrics-server -n kube-system
+   helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+   helm repo update
+   helm install metrics-server metrics-server/metrics-server --version 3.8.2
+   kubectl edit deployment metrics-server
+   kubectl top pod
+   kubectl top node
+   kubectl scale deployment hello-world-deployment --replicas=<desired-replica-count>
+   kubectl autoscale deployment hello-world-deployment --cpu-percent=80 --min=1 --max=10
+   kubectl get hpa
+   kubectl logs -f deployment/metrics-server
+   kubectl logs -f (pod-name)
+   ```
+
     ```
     spec:
       containers:
@@ -126,15 +92,25 @@ This runbook outlines the steps for administering and maintaining the "Hello, Wo
         - --kubelet-use-node-status-port
         - --metric-resolution=15s
         - --kubelet-insecure-tls
-        
-4. **Logs from metrics-server deployment**
-    ```bash
-    kubectl logs -f deployment/metrics-server -n kube-system
     ```
-5. **Get all metrics-server pods**
-    ```bash
-    kubectl get po -n kube-system -l k8s-app=metrics-server
-    ```
+
+
+
+## Setup for Prometheus and Grafana for Monitoring
+
+   ```bash
+   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+   helm search repo prometheus-community
+   helm install promet prometheus-community/kube-prometheus-stack     # promet as release name
+   kubectl get pods
+   kubectl get svc
+   kubectl edit svc (promet-prometheus-service)                       #change service type to LoadBalancer to view externally
+   kubectl edit svc  (promet-grafana-service)                        # change service type to Loadbalancer and port number from 80 to 3000
+   kubectl get svc                                                   # copy externalIP or the loadbalancer url with their coressponding port number and view over the browser
+   helm uninstall (promet)
+   ```
+
+
 
 ## Conclusion
 This runbook provides the essential commands and steps required to manage and maintain the "Hello, World!" web server deployed in a Kubernetes environment using Docker and Helm. Follow these instructions to ensure smooth operation, monitoring, and troubleshooting of the web server.
